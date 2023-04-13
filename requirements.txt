@@ -5,3 +5,4 @@ rich==13.3.2
 transformers==4.27.2
 keyboard~=0.13.5
 tiktoken==0.3.2
+discord==2.2.2
