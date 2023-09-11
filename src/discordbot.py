@@ -1,6 +1,7 @@
 import re
 
 import discord
+from discord.app_commands import tree
 from discord.ext import commands
 
 from src.command_enums import Command
@@ -114,15 +115,17 @@ class DiscordBot(discord.ext.commands.Bot):
 
     async def on_ready(self):
         print('Logged on as', self.user)
+        await self.tree.sync(guild=discord.Object(id=1030501230797131887))
         for guild in self.guilds:
             print(f'Connected to {guild.name}')
+            await self.tree.sync()
             self.members = await self.fetch_all_members(guild)
             self.log_channel = guild.get_channel(1148894899358404618)
-            print('Retrieving all channel messages...')
-            await self.log_channel.send('Retrieving all channel messages...')
-            self.channel_messages = await self.retrieve_channel_msg(guild)
-            print('Done')
-            await self.log_channel.send('Ready for commands!')
+            # print('Retrieving all channel messages...')
+            # await self.log_channel.send('Retrieving all channel messages...')
+            # self.channel_messages = await self.retrieve_channel_msg(guild)
+            # print('Done')
+            # await self.log_channel.send('Ready for commands!')
 
     def count_user_messages(self, channel_messages, members):
         for member in members:
