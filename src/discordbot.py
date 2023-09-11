@@ -1,4 +1,3 @@
-import json
 import re
 
 import discord
@@ -37,20 +36,23 @@ class DiscordBot(discord.ext.commands.Bot):
         self.kindergarten_channel = 1150088312732790784
 
         @self.command()
+        @commands.has_role('Parent')
         async def show(ctx, arg):
             ghosts_string_list = []
-
             for member in self.members:
                 member_roles = [role.name for role in member.roles]
                 if arg in member_roles:
-                    ghosts_string_list.append(member.name)
-
+                    ghosts_string_list.append(f'- {member.name}')
             ghosts_string = '\n'.join(ghosts_string_list)
+            if len(ghosts_string) == 0:
+                ghosts_string = 'Not found'
             print(ghosts_string)
             await self.log_channel.send(ghosts_string)
 
         @self.command()
+        @commands.has_role('Parent')
         async def assign(ctx, arg):
+            await self.load_msgs(ctx)
             if arg == 'Toddler':
                 print('Assigning Toddler role to active members...')
                 await self.log_channel.send('Assigning Toddler role to active members...')
@@ -62,7 +64,8 @@ class DiscordBot(discord.ext.commands.Bot):
             await self.log_channel.send('Done')
 
         @self.command()
-        async def get_all_msg(ctx):
+        @commands.has_role('Parent')
+        async def refresh(ctx):
             print('Retrieving all channel messages...')
             await self.log_channel.send('Retrieving all channel messages...')
             self.channel_messages = await self.retrieve_channel_msg(ctx.guild)
@@ -70,13 +73,9 @@ class DiscordBot(discord.ext.commands.Bot):
             await self.log_channel.send('Done')
 
         @self.command()
+        @commands.has_role('Parent')
         async def count(ctx, arg):
-            if len(self.channel_messages) == 0:
-                print('No channel messages found. Retrieving all channel messages...')
-                await self.log_channel.send('No channel messages found. Retrieving all channel messages...')
-                self.channel_messages = await self.retrieve_channel_msg(ctx)
-                print('Done')
-                await self.log_channel.send('Done')
+            await self.load_msgs(ctx)
 
             message_counts = self.count_user_messages(self.channel_messages, self.members)
             if arg == 'inactive':
@@ -104,18 +103,33 @@ class DiscordBot(discord.ext.commands.Bot):
                 self.members.append(member)
         return self.members
 
+    async def load_msgs(self, ctx):
+        if len(self.channel_messages) == 0:
+            print('No channel messages saved in memory. Retrieving all channel messages...')
+            await self.log_channel.send('No channel messages saved in memory. Retrieving all channel messages...')
+            async with ctx.typing():
+                self.channel_messages = await self.retrieve_channel_msg(ctx.guild)
+                print('Done')
+                await self.log_channel.send('Done')
+
     async def on_ready(self):
         print('Logged on as', self.user)
         for guild in self.guilds:
+            print(f'Connected to {guild.name}')
             self.members = await self.fetch_all_members(guild)
             self.log_channel = guild.get_channel(1148894899358404618)
+            print('Retrieving all channel messages...')
+            await self.log_channel.send('Retrieving all channel messages...')
+            self.channel_messages = await self.retrieve_channel_msg(guild)
+            print('Done')
+            await self.log_channel.send('Ready for commands!')
 
     def count_user_messages(self, channel_messages, members):
         for member in members:
             self.message_counts[member.name] = 0
         for message in channel_messages:
-            if message['name'] in self.message_counts:
-                self.message_counts[message['name']] += 1
+            if message.author.name in self.message_counts:
+                self.message_counts[message.author.name] += 1
         return self.message_counts
 
     async def assign_roles_to_active_members(self, guild, role_name='Toddler'):
@@ -171,6 +185,8 @@ class DiscordBot(discord.ext.commands.Bot):
                 print(f'{author.name} said their first word! They are Toddler now!')
                 await self.log_channel.send(
                     f'{author.mention} said their first word! They are Toddler now! {message.jump_url}')
+
+        await self.process_commands(message)  # this is needed for the bot to process commands
 
     def is_message_empty(self, message):
         return len(message) == 0
