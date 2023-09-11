@@ -1,9 +1,9 @@
 import os
-import discord
-from dotenv import load_dotenv
-from src.langchain_wrapper import LangChainGpt
-from src.discord_bot import Discord_Bot
 
+from dotenv import load_dotenv
+
+from src.discordbot import DiscordBot
+from src.langchain_wrapper import LangChainGpt
 
 if __name__ == '__main__':
     load_dotenv()
@@ -17,8 +17,5 @@ if __name__ == '__main__':
 
     langchain_gpt = LangChainGpt(system_message=system_message)
 
-    intents = discord.Intents.default()
-    intents.message_content = True
-
-    client = Discord_Bot(intents=intents, chat_gpt=langchain_gpt)
+    client = DiscordBot(chat_gpt=langchain_gpt)
     client.run(discord_api_key)
